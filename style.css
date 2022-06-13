@@ -1,0 +1,52 @@
+* {
+    box-sizing: border-box;
+}
+
+:root {
+    --border-radius: 5px;
+    --background-bright-color-primary: #fff;
+    --background-bright-color-secondary: #c4c4c4;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background: var(--background-bright-color-secondary);
+}
+
+h1 {
+    margin: 0;
+    padding: 0;
+}
+
+button {
+    cursor: pointer;
+}
+
+#app {
+    max-width: 50rem;
+    margin: 0 auto;
+}
+
+.header {
+    display: flex;
+    justify-content: center;
+    padding: 10px;
+    margin: 30px 0px;
+    background-color: var(--background-bright-color-primary);
+    border-radius: var(--border-radius);
+}
+
+#main {
+    height: 80vh;
+    overflow-y: scroll;
+    background: var(--background-bright-color-primary);
+    border-radius: var(--border-radius);
+    padding: 20px
+}
+
+.footer {
+    display: flex;
+    justify-content: flex-end;
+    margin: 20px 0;
+}
