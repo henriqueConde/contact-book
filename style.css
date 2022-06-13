@@ -23,9 +23,10 @@ button {
     cursor: pointer;
 }
 
-#app {
+.container {
     max-width: 50rem;
     margin: 0 auto;
+    position: relative;
 }
 
 .header {
@@ -49,4 +50,55 @@ button {
     display: flex;
     justify-content: flex-end;
     margin: 20px 0;
+}
+
+.modal-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0,0,0, 0.5);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+}
+
+.modal {
+    width: 90vw;
+    max-width: 40rem;
+    height: 50vh;
+    background: var(--background-bright-color-primary);
+    border-radius: var(--border-radius);
+    margin: 0 auto;
+    display: flex;
+}
+
+.form {
+    width: 80%;
+    align-self: center;
+    display: flex;
+    flex-direction: column;
+    margin: 0 auto;
+}
+
+.form__group {
+    display: grid;
+    margin-bottom: 20px;
+}
+
+.form__add-button{
+    max-width: 8rem;
+    padding: 5px 15px;
+    border-radius: var(--border-radius);
+    border: none;
+    background-color: black;
+    color: #fff;
+    align-self: flex-end;
+}
+
+@media only screen and (min-width: 768px) {
+    .form__group {
+        grid-template-columns: 1fr 3fr;
+    }
 }
