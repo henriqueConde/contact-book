@@ -84,7 +84,7 @@ button {
 
 .form__group {
     display: grid;
-    margin-bottom: 20px;
+    margin-bottom: 40px;
 }
 
 .form__add-button{
@@ -95,6 +95,18 @@ button {
     background-color: black;
     color: #fff;
     align-self: flex-end;
+}
+
+.input-div {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.form__error-message {
+    color: red;
+    position: absolute;
+    top: 120%;
 }
 
 @media only screen and (min-width: 768px) {
