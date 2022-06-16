@@ -1,4 +1,3 @@
-// TENTAR USAR O MEMOIZATION - CACHEABLE NO CAPITULO 3 DO LIVRO
 const INITIAL_STATE = {
     contacts: [],
 }
@@ -69,7 +68,6 @@ const createEl = (tag, attributes = {}, events = {}) => {
     return el;
 }
 
-// Check if localStorage has state
 const checkLocalStorage = () => {
     if(!getLocalStorageState()) {
         setLocalStorageState(INITIAL_STATE);
@@ -88,31 +86,30 @@ const renderAddContactModal = () => {
     })
 }
 
-const validateForm = () => {
-    const formInputs = [...document.querySelectorAll('.form__input')];
+const validateForm = formValues => {
+    const formInputs = Object.keys(formValues);
     const errorMessages = {};
     formInputs.forEach(input => {
-        const { validations } = FORM_FIELDS.filter(field => field.name === input.name)[0];
+        const { validations } = FORM_FIELDS.filter(field => field.name === input)[0];
 
-        if(!validations.isRequired && input.value === '') {
+        if(!validations.isRequired && formValues[input] === '') {
             return;
         }
         
-        if(validations.minLength !== null && input.value.length < validations.minLength) {
-            errorMessages[input.name] = `The ${input.name} is to short`;
+        if(validations.minLength !== null && formValues[input].length < validations.minLength) {
+            errorMessages[input] = `The ${input} is to short`;
             return;
         }
 
-        if(validations.maxLength !== null && input.value.length > validations.maxLength) {
-            errorMessages[input.name] = `The ${input.name} is to long`;
+        if(validations.maxLength !== null && formValues[input].length > validations.maxLength) {
+            errorMessages[input] = `The ${input} is to long`;
             return;
         }
 
-        if(!validations.regexVal.test(input.value)) {
-            errorMessages[input.name] = `The ${input.name} is not valid`;
+        if(!validations.regexVal.test(formValues[input])) {
+            errorMessages[input] = `The ${input} is not valid`;
             return;
         }
-
     })
 
     return errorMessages;
@@ -133,6 +130,18 @@ const renderErrorMessages = errorMessages => {
 const removeErrorMessages = () => {
     const errorMessages = [...document.querySelectorAll('.form__error-message')];
     errorMessages.forEach(message => message.remove());
+}
+
+const getFormValues = () => {
+    let values = {};
+    const formElements = [...document.querySelectorAll('.form__input')];
+    formElements.forEach(element => {
+        values = {
+            ...values,
+            [element.name]: element.value,
+        }
+    })
+    return values;
 }
 
 const createAddContactForm = () => {
@@ -176,18 +185,57 @@ const createAddContactForm = () => {
     }, {
         click: function(event) {
             event.preventDefault();
-            const errorMessages = validateForm();
-            if (errorMessages.length === 0) {
-                // updateState();
-                // removeModal();
-            } else {
-                renderErrorMessages(errorMessages);
-            }
+            handleAddContactBtnClick();
         }
     })
 
     addContactForm.appendChild(addContactButton);
     return addContactForm;
+}
+
+const handleAddContactBtnClick = () => {
+    const formValues = getFormValues();
+    const errorMessages = validateForm(formValues);
+    if (Object.keys(errorMessages).length === 0) {
+        const contactAlreadyExists = checkContactExists(formValues.email);
+        if(!contactAlreadyExists) {
+            const valuesWithId = addUniqueId(formValues);
+            updateContactsState(valuesWithId);
+            removeModal();
+        } else {
+            renderAlreadyExistsError();
+        }
+    } else {
+        renderErrorMessages(errorMessages);
+    }
+}
+
+const renderAlreadyExistsError = () => {
+    renderErrorMessages({
+        email: 'This email is already registered',
+    });
+}
+
+const checkContactExists = newContactEmail => {
+    let contactAlreadyExists = false;
+    state.contacts.forEach(contact => {
+        if(contact.email === newContactEmail) {
+            contactAlreadyExists = true;
+        }
+    })
+    return contactAlreadyExists;
+}
+
+const updateContactsState = newState => {
+    state.contacts.push(newState);
+    setLocalStorageState(state);
+}
+
+const addUniqueId = valuesObj => {
+    return {
+        ...valuesObj,
+        id: crypto.randomUUID(),
+    }
 }
 
 const removeModal = () => {
