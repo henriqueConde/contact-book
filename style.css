@@ -25,6 +25,8 @@ ul, h1 {
 
 button {
     cursor: pointer;
+    border: none;
+    background-color: transparent;
 }
 
 .container {
@@ -121,6 +123,7 @@ button {
     background: var(--background-bright-color-secondary);
     border-radius: var(--border-radius);
     align-items: center;
+    position: relative;
 }
 
 .contact__icons-list {
@@ -139,6 +142,32 @@ button {
     background: transparent;
 }
 
+.favorite {
+    color: red;
+}
+
+.tooltip {
+    position: absolute;
+    right: 0%;
+    bottom: -65%;
+    width: 15%;
+    z-index: 1;
+}
+
+.tooltip__action-li {
+    background-color: red;
+    cursor: pointer;
+    padding: 6px;
+}
+
+.tooltip__action {
+    color: white;
+    font-size: 18px;
+}
+
+.tooltip__action-li:hover {
+    background-color: rgb(141, 13, 13);
+}
 
 @media only screen and (min-width: 768px) {
     .form__group {

@@ -1,6 +1,8 @@
 const INITIAL_STATE = {
     contacts: [],
     favorites: [],
+    selected: [],
+    isTooltipActive: false,
 }
 let state = INITIAL_STATE;
 const MAIN = document.querySelector('#main');
@@ -55,12 +57,18 @@ const FORM_FIELDS = [
 const getLocalStorageState = () => JSON.parse(localStorage.getItem('state'));
 const setLocalStorageState = newState => localStorage.setItem('state', JSON.stringify(newState));
 
-const createEl = (tag, attributes = {}, events = {}) => {
+const createEl = (tag, attributes={}, events = {}) => {
     const el = document.createElement(tag);
 
     Object.entries(attributes).forEach(([attr, value]) => {
-        el[attr] = value;
-    })
+        if(typeof value !== 'object') {
+            el[attr] = value;
+        } else if (attr === 'data') {
+            Object.keys(value).forEach(key => {
+                el.dataset[key] = value[key]
+            });
+        }
+    });
 
     Object.entries(events).forEach(([eventType, func]) => {
         el.addEventListener(eventType, func);
@@ -85,42 +93,89 @@ const removeAllContacts = () => {
     allContacts.forEach(contact => contact.remove());
 }
 
-const makeCallContact = () => {
-    console.log('Call contact');
+const updateFavoritesState = newId => {
+    if(!state.favorites.includes(newId)) {
+        state.favorites.push(newId);
+        console.log('Added favorite')
+    } else {
+        const idIndex = state.favorites.indexOf(newId)
+        state.favorites.splice(idIndex, 1);
+        console.log('Removed favorite')
+    }
+
+    setLocalStorageState(state);
+    console.log(state.favorites)
 }
 
-const sendEmailContact = () => {
-    console.log('Email contact');
+const makeCallContact = ({ target }) => {
+    window.open('tel:' + target.dataset.tel);
 }
 
-const makeContactFavorite = () => {
-    console.log('Fav contact')
+const sendEmailContact = ({ target }) => {
+    const email = createEl("a", {
+        href: `mailto:${target.dataset.email}`
+    });
+    email.click();
+    email.remove();
 }
 
-const showMoreActions = () => {
+const makeContactFavorite = ({ target }) => {
+    target.classList.toggle('favorite');
+    const contactEmail = target.dataset.email;
+    const selectedContact = state.contacts.filter(contact => contact.email === contactEmail)[0];
+    updateFavoritesState(selectedContact.id);
+}
+
+const showMoreActions = ({ target }) => {
+    state = {
+        ...state,
+        isTooltipActive: true,
+    };
+    const contactContainer = target.parentNode.parentNode.parentNode;
+    createToolTip(contactContainer);
     console.log('Show more actions');
 }
 
-const hideMoreActions = () => {
-    console.log('Hide more actions');
+const hideMoreActions = ({ target }) => {
+    state = {
+        ...state,
+        isTooltipActive: false,
+    };
+    setTimeout(() => {
+        if(!state.isTooltipActive) {
+            const tooltip = document.querySelector('.tooltip');
+            tooltip.remove();
+        }
+    }, 100);
+    console.log('Hide more actions', target);
 }
 
-const createContactIcons = () => {
+const createContactIcons = contact => {
+    const favoriteClass = state.favorites.includes(contact.id) ? 'favorite' : '';
     const icons = [
         {
             className: "contact__icon fa-solid fa-mobile",
+            data: {
+                tel: contact['phone-number'],
+            },
             events: {
                 click: makeCallContact,
             }
         },
         {
             className: "contact__icon fa-solid fa-at",
+            data: {
+                email: contact.email,
+            },
             events: {
                 click: sendEmailContact,
             }
         }, 
         {
-            className: "contact__icon fa-solid fa-star",
+            className: "contact__icon fa-solid fa-star " + favoriteClass,
+            data: {
+                email: contact.email,
+            },
             events: {
                 click: makeContactFavorite,
             }
@@ -141,6 +196,9 @@ const createContactIcons = () => {
 
         const buttonIcon = createEl('button', {
             className: 'contact__icon-button',
+            data: {
+                ...icon.data,
+            }
         },
         {
             ...icon.events,
@@ -148,6 +206,9 @@ const createContactIcons = () => {
 
         const iconTag = createEl('i', {
             className: icon.className,
+            data: {
+                ...icon.data,
+            }
         })
         
         iconLi.appendChild(buttonIcon);
@@ -156,12 +217,80 @@ const createContactIcons = () => {
     })
 }
 
+const editContact = () => {
+    console.log('Edit contact');
+}
+
+const deleteContact = () => {
+    console.log('Delete contact');
+}
+
+const selectContact = () => {
+    console.log('Select contact');
+}
+
+const createToolTip = contactContainer => {
+    const actions = [
+        {
+            className: 'tooltip__action tooltip__edit',
+            textContent: 'Edit',
+            events: {
+                click: editContact,
+            },
+        },
+        {
+            className: 'tooltip__action tooltip__delete',
+            textContent: 'Delete',
+            events: {
+                click: deleteContact,
+            },
+        },
+        {
+            className: 'tooltip__action tooltip__select',
+            textContent: 'Select',
+            events: {
+                click: selectContact,
+            },
+        },
+    ]
+
+    const toolTip = createEl('div', {
+        className: 'tooltip',
+    },
+    {
+        mouseenter: showMoreActions,
+        mouseleave: hideMoreActions,
+    });
+
+    const actionsList = createEl('ul', {
+        className: 'tooltip__actions'
+    });
+
+    actions.forEach(action => {
+        const actionLi = createEl('li', {
+            className: 'tooltip__action-li'
+        });
+
+        const actionButtons = createEl('button', {
+            textContent: action.textContent,
+            className: action.className,
+        },
+        {
+            ...action.events,
+        });
+        actionLi.appendChild(actionButtons);
+        actionsList.appendChild(actionLi);
+    })
+    toolTip.appendChild(actionsList);
+    contactContainer.appendChild(toolTip);
+}
+
 const renderContactList = () => {
     removeAllContacts();
     const { contacts } = state;
     contacts.forEach(contact => {
         const contactContainer = createEl('div', {
-            className: 'contact'
+            className: 'contact',
         })
 
         const contactNameDiv = createEl('div', {
@@ -178,9 +307,12 @@ const renderContactList = () => {
 
         const contactIconsList = createEl('ul', {
             className: 'contact__icons-list',
+            data: {
+                email: contact.email
+            }
         })
 
-        const icons = createContactIcons();
+        const icons = createContactIcons(contact);
         icons.forEach(icon => {
             contactIconsList.appendChild(icon);
         })
