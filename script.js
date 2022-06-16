@@ -79,6 +79,119 @@ const checkLocalStorage = () => {
     }
 }
 
+const removeAllContacts = () => {
+    const allContacts = [...document.querySelectorAll('.contact')];
+    allContacts.forEach(contact => contact.remove());
+}
+
+const makeCallContact = () => {
+    console.log('Call contact');
+}
+
+const sendEmailContact = () => {
+    console.log('Email contact');
+}
+
+const makeContactFavorite = () => {
+    console.log('Fav contact')
+}
+
+const showMoreActions = () => {
+    console.log('Show more actions');
+}
+
+const hideMoreActions = () => {
+    console.log('Hide more actions');
+}
+
+const createContactIcons = () => {
+    const icons = [
+        {
+            className: "contact__icon fa-solid fa-mobile",
+            events: {
+                click: makeCallContact,
+            }
+        },
+        {
+            className: "contact__icon fa-solid fa-at",
+            events: {
+                click: sendEmailContact,
+            }
+        }, 
+        {
+            className: "contact__icon fa-solid fa-star",
+            events: {
+                click: makeContactFavorite,
+            }
+        },
+        {
+            className: "contact__icon fa-solid fa-ellipsis-vertical",
+            events: {
+                mouseenter: showMoreActions,
+                mouseleave: hideMoreActions,
+                click: showMoreActions,
+                blur: hideMoreActions,
+            }
+        }
+    ];
+
+    return icons.map(icon => {
+        const iconLi = createEl('li');
+
+        const buttonIcon = createEl('button', {
+            className: 'contact__icon-button',
+        },
+        {
+            ...icon.events,
+        })
+
+        const iconTag = createEl('i', {
+            className: icon.className,
+        })
+        
+        iconLi.appendChild(buttonIcon);
+        buttonIcon.appendChild(iconTag);
+        return buttonIcon;
+    })
+}
+
+const renderContactList = () => {
+    removeAllContacts();
+    const { contacts } = state;
+    contacts.forEach(contact => {
+        const contactContainer = createEl('div', {
+            className: 'contact'
+        })
+
+        const contactNameDiv = createEl('div', {
+            className: 'contact__name',
+        })
+
+        const contactName = createEl('h2', {
+            textContent: `${contact.name} ${contact.surname}`,
+        })
+
+        const contactIconsContainer = createEl('div', {
+            className: 'contact__icons-container',
+        })
+
+        const contactIconsList = createEl('ul', {
+            className: 'contact__icons-list',
+        })
+
+        const icons = createContactIcons();
+        icons.forEach(icon => {
+            contactIconsList.appendChild(icon);
+        })
+
+        contactIconsContainer.appendChild(contactIconsList);
+        contactNameDiv.appendChild(contactName);
+        contactContainer.appendChild(contactNameDiv);
+        contactContainer.appendChild(contactIconsContainer);
+        MAIN.appendChild(contactContainer);
+    })
+}
+
 const renderAddContactModal = () => {
     const addBtn = document.querySelector('.footer__add-button');
     addBtn.addEventListener('click', () => {
@@ -229,6 +342,7 @@ const checkContactExists = newContactEmail => {
 const updateContactsState = newState => {
     state.contacts.push(newState);
     setLocalStorageState(state);
+    renderContactList();
 }
 
 const addUniqueId = valuesObj => {
@@ -265,6 +379,7 @@ const createAddContactModal = () => {
 const INIT = () => {
     checkLocalStorage();
     renderAddContactModal();
+    renderContactList();
 }
 
 INIT();
