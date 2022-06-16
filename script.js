@@ -1,5 +1,6 @@
 const INITIAL_STATE = {
     contacts: [],
+    favorites: [],
 }
 let state = INITIAL_STATE;
 const MAIN = document.querySelector('#main');
