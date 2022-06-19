@@ -96,15 +96,12 @@ const removeAllContacts = () => {
 const updateFavoritesState = newId => {
     if(!state.favorites.includes(newId)) {
         state.favorites.push(newId);
-        console.log('Added favorite')
     } else {
         const idIndex = state.favorites.indexOf(newId)
         state.favorites.splice(idIndex, 1);
-        console.log('Removed favorite')
     }
 
     setLocalStorageState(state);
-    console.log(state.favorites)
 }
 
 const makeCallContact = ({ target }) => {
@@ -126,28 +123,21 @@ const makeContactFavorite = ({ target }) => {
     updateFavoritesState(selectedContact.id);
 }
 
-const showMoreActions = ({ target }) => {
+const showTooltip = (htmlContextContainer, email) => {
     state = {
         ...state,
         isTooltipActive: true,
     };
-    const contactContainer = target.parentNode.parentNode.parentNode;
-    createToolTip(contactContainer);
-    console.log('Show more actions');
+    createToolTip(htmlContextContainer, email);
 }
 
-const hideMoreActions = ({ target }) => {
+const hideTooltip = () => {
     state = {
         ...state,
         isTooltipActive: false,
     };
-    setTimeout(() => {
-        if(!state.isTooltipActive) {
-            const tooltip = document.querySelector('.tooltip');
-            tooltip.remove();
-        }
-    }, 100);
-    console.log('Hide more actions', target);
+    const tooltip = document.querySelector('.tooltip');
+    tooltip?.remove();
 }
 
 const createContactIcons = contact => {
@@ -182,17 +172,25 @@ const createContactIcons = contact => {
         },
         {
             className: "contact__icon fa-solid fa-ellipsis-vertical",
-            events: {
-                mouseenter: showMoreActions,
-                mouseleave: hideMoreActions,
-                click: showMoreActions,
-                blur: hideMoreActions,
-            }
+            eventsLi: {
+                mouseenter: function() {
+                    return showTooltip(this, contact.email)
+                },
+                mouseleave: hideTooltip,
+                click: function() {
+                    return showTooltip(this.parentNode, contact.email)
+                },
+            },
         }
     ];
 
     return icons.map(icon => {
-        const iconLi = createEl('li');
+        const iconLi = createEl('li', {
+            className: 'contact__icon-li'
+        },
+        {
+            ...icon.eventsLi,
+        });
 
         const buttonIcon = createEl('button', {
             className: 'contact__icon-button',
@@ -200,7 +198,7 @@ const createContactIcons = contact => {
                 ...icon.data,
             }
         },
-        {
+        {   
             ...icon.events,
         })
 
@@ -213,7 +211,7 @@ const createContactIcons = contact => {
         
         iconLi.appendChild(buttonIcon);
         buttonIcon.appendChild(iconTag);
-        return buttonIcon;
+        return iconLi;
     })
 }
 
@@ -221,45 +219,67 @@ const editContact = () => {
     console.log('Edit contact');
 }
 
-const deleteContact = () => {
-    console.log('Delete contact');
+const deleteContact = contactInfo => {
+    const contactContainer = document.querySelector(`[data-email="${contactInfo}"]`);
+    contactContainer.remove();
+    const { contacts } = state;
+    const contactId = contacts.filter(contact => contact.email === contactInfo)[0].id;
+    if(state.favorites.includes(contactId)) {
+        updateFavoritesState(contactId);
+    }
+    const newContacts = contacts.filter(contact => contact.email !== contactInfo);
+    removeContactState(newContacts);
 }
 
 const selectContact = () => {
     console.log('Select contact');
 }
 
-const createToolTip = contactContainer => {
+const createToolTip = (contactContainer, email) => {
     const actions = [
         {
             className: 'tooltip__action tooltip__edit',
             textContent: 'Edit',
             events: {
-                click: editContact,
-            },
+                click: function(event) {
+                    event.stopPropagation();
+                    hideTooltip();
+                    editContact();
+                },
+            }
         },
         {
             className: 'tooltip__action tooltip__delete',
             textContent: 'Delete',
             events: {
-                click: deleteContact,
+                click: function(event) {
+                    event.stopPropagation();
+                    hideTooltip();
+                    deleteContact(email);
+                },
             },
         },
         {
             className: 'tooltip__action tooltip__select',
             textContent: 'Select',
             events: {
-                click: selectContact,
+                click: function(event) {
+                    event.stopPropagation();
+                    hideTooltip();
+                    selectContact();
+                },
+                blur: function() {
+                    // why do I need to check the state here??
+                    if(state.isTooltipActive) {
+                        return hideTooltip();
+                    }
+                },
             },
         },
     ]
 
     const toolTip = createEl('div', {
         className: 'tooltip',
-    },
-    {
-        mouseenter: showMoreActions,
-        mouseleave: hideMoreActions,
     });
 
     const actionsList = createEl('ul', {
@@ -269,6 +289,9 @@ const createToolTip = contactContainer => {
     actions.forEach(action => {
         const actionLi = createEl('li', {
             className: 'tooltip__action-li'
+        },
+        {
+            ...action.events,
         });
 
         const actionButtons = createEl('button', {
@@ -291,6 +314,9 @@ const renderContactList = () => {
     contacts.forEach(contact => {
         const contactContainer = createEl('div', {
             className: 'contact',
+            data: {
+                email: contact.email
+            }
         })
 
         const contactNameDiv = createEl('div', {
@@ -446,7 +472,7 @@ const handleAddContactBtnClick = () => {
         const contactAlreadyExists = checkContactExists(formValues.email);
         if(!contactAlreadyExists) {
             const valuesWithId = addUniqueId(formValues);
-            updateContactsState(valuesWithId);
+            addContactState(valuesWithId);
             removeModal();
         } else {
             renderAlreadyExistsError();
@@ -472,8 +498,14 @@ const checkContactExists = newContactEmail => {
     return contactAlreadyExists;
 }
 
-const updateContactsState = newState => {
+const addContactState = newState => {
     state.contacts.push(newState);
+    setLocalStorageState(state);
+    renderContactList();
+}
+
+const removeContactState = newState => {
+    state.contacts = newState;
     setLocalStorageState(state);
     renderContactList();
 }
