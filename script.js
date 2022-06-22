@@ -54,6 +54,11 @@ const FORM_FIELDS = [
     },
 ];
 
+const CONTACT_FORM_TYPES = {
+    add: 'Add',
+    edit: 'Edit'
+}
+
 const getLocalStorageState = () => JSON.parse(localStorage.getItem('state'));
 const setLocalStorageState = newState => localStorage.setItem('state', JSON.stringify(newState));
 
@@ -215,15 +220,40 @@ const createContactIcons = contact => {
     })
 }
 
-const editContact = () => {
-    console.log('Edit contact');
+const createEditContact = () => {
+    const contactForm = createContactForm(CONTACT_FORM_TYPES.edit);
+    return contactForm;
 }
+
+const fillEdiForm = contactInfo => {
+    const formElements = [...document.querySelectorAll('.form__input')];
+    formElements.forEach(input => {
+        input.value = contactInfo[input.name];
+    })
+}
+
+const editContact = contactEmail => {
+    const contactContainer = document.querySelector(`[data-email="${contactEmail}"]`);
+
+    // retrieve contact info from state
+    const { contacts } = state;
+    const contactInfo = contacts.filter(contact => contact.email === contactEmail)[0];
+    
+    // render edit contact info form
+    const editContactForm = createEditContact(contactInfo);
+    contactContainer.appendChild(editContactForm);
+
+    // fill form with values
+    fillEdiForm(contactInfo);
+}
+
+
 
 const deleteContact = contactInfo => {
     const contactContainer = document.querySelector(`[data-email="${contactInfo}"]`);
     contactContainer.remove();
     const { contacts } = state;
-    const contactId = contacts.filter(contact => contact.email === contactInfo)[0].id;
+    const contactId = getContactId(contactInfo);
     if(state.favorites.includes(contactId)) {
         updateFavoritesState(contactId);
     }
@@ -244,7 +274,7 @@ const createToolTip = (contactContainer, email) => {
                 click: function(event) {
                     event.stopPropagation();
                     hideTooltip();
-                    editContact();
+                    editContact(email);
                 },
             }
         },
@@ -319,9 +349,15 @@ const renderContactList = () => {
             }
         })
 
+        const divWrapper = createEl('div', {
+            className: 'contact__div-wrapper'
+        })
+
         const contactNameDiv = createEl('div', {
             className: 'contact__name',
         })
+
+       
 
         const contactName = createEl('h2', {
             textContent: `${contact.name} ${contact.surname}`,
@@ -330,6 +366,9 @@ const renderContactList = () => {
         const contactIconsContainer = createEl('div', {
             className: 'contact__icons-container',
         })
+
+        divWrapper.appendChild(contactNameDiv)
+        divWrapper.appendChild(contactIconsContainer)
 
         const contactIconsList = createEl('ul', {
             className: 'contact__icons-list',
@@ -345,8 +384,9 @@ const renderContactList = () => {
 
         contactIconsContainer.appendChild(contactIconsList);
         contactNameDiv.appendChild(contactName);
-        contactContainer.appendChild(contactNameDiv);
-        contactContainer.appendChild(contactIconsContainer);
+        divWrapper.appendChild(contactNameDiv)
+        divWrapper.appendChild(contactIconsContainer)
+        contactContainer.appendChild(divWrapper);
         MAIN.appendChild(contactContainer);
     })
 }
@@ -416,9 +456,9 @@ const getFormValues = () => {
     return values;
 }
 
-const createAddContactForm = () => {
-    const addContactForm = createEl('form', {
-        className: 'form'
+const createContactForm = formType => {
+    const contactForm = createEl('form', {
+        className: `form form__${formType.toLowerCase()}`
     });
 
     FORM_FIELDS.forEach(field => {
@@ -448,21 +488,74 @@ const createAddContactForm = () => {
         divInput.appendChild(input)
         formGroup.appendChild(label);
         formGroup.appendChild(divInput);
-        addContactForm.appendChild(formGroup);
+        contactForm.appendChild(formGroup);
     })
 
-    const addContactButton = createEl('button', {
-        textContent: 'Add Contact',
-        className: 'form__add-button'
+    const actionContactButton = createEl('button', {
+        textContent: `${formType} Contact`,
+        className: `form__${formType.toLowerCase()}-button`
     }, {
         click: function(event) {
             event.preventDefault();
-            handleAddContactBtnClick();
+            if(formType === CONTACT_FORM_TYPES.add) {
+                handleAddContactBtnClick();
+            } else {
+                const selectedContactEmail = this.parentNode.parentNode.dataset.email;
+                handleEditContactBtnClick(selectedContactEmail);
+            }
         }
     })
 
-    addContactForm.appendChild(addContactButton);
-    return addContactForm;
+    contactForm.appendChild(actionContactButton);
+    return contactForm;
+}
+
+const removeEditContactForm = () => {
+    const editForm = document.querySelector('.form__edit');
+    editForm.remove();
+}
+
+const getContactId = contactEmail => {
+    const { contacts } = state;
+    const contact = contacts.filter(contact => contact.email === contactEmail)[0];
+    return contact.id;
+}
+
+const removeContactsList = () => {
+    const contactsList = [...document.querySelectorAll('.contact')];
+    contactsList.forEach(contact => contact.remove());
+}
+
+const updateContacts = newContactState => {
+    const { contacts } = state;
+    contacts.forEach((contact, index) => {
+        if(contact.id === newContactState.id) {
+            contacts[index] = newContactState;
+            return;
+        }
+    })
+}
+
+const insertIdToUpdatedValues = (inputValues, email) => {
+    const contactId = getContactId(email);
+    return {
+        ...inputValues,
+        id: contactId,
+    }
+}
+
+const handleEditContactBtnClick = contactEmail => {
+    const inputValues = getFormValues();
+    const errorMessages = validateForm(inputValues);
+    if(Object.keys(errorMessages).length === 0) {
+        const newContactState = insertIdToUpdatedValues(inputValues, contactEmail);
+        updateContacts(newContactState)
+        setLocalStorageState(state);
+        removeContactsList();
+        renderContactList();
+    } else {
+        renderErrorMessages(errorMessages);
+    }
 }
 
 const handleAddContactBtnClick = () => {
@@ -538,7 +631,7 @@ const createAddContactModal = () => {
 
     modalContainer.appendChild(modal);
     document.querySelector('#app').appendChild(modalContainer);
-    modal.appendChild(createAddContactForm());
+    modal.appendChild(createContactForm(CONTACT_FORM_TYPES.add));
 }
 
 const INIT = () => {

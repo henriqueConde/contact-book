@@ -116,14 +116,17 @@ button {
 }
 
 .contact {
-    display: flex;
-    justify-content: space-between;
     padding: 20px;
     margin-bottom: 25px;
     background: var(--background-bright-color-secondary);
     border-radius: var(--border-radius);
-    align-items: center;
     position: relative;
+}
+
+.contact__div-wrapper {
+    display: grid;
+    grid-template-columns: 3fr 1fr;
+    align-items: center;
 }
 
 .contact__icons-list {
