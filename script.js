@@ -383,7 +383,9 @@ const createToolTip = (contactContainer, email) => {
                     selectContact(email);
                 },
                 blur: function() {
-                    // why do I need to check the state here??
+                    // The node is being removed by the click event above and therefore triggering the blur event. 
+                    // Is there a better way to handle this situation?
+                    // https://stackoverflow.com/questions/21926083/failed-to-execute-removechild-on-node
                     if(state.isTooltipActive) {
                         return hideTooltip();
                     }
