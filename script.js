@@ -326,21 +326,25 @@ const addOrRemoveFromSelected = contactEmail => {
 }
 
 const selectContact = contactEmail => {
-    const contactNameContainer = document.querySelector(`[data-email="${contactEmail}"]`)
+    const checkBoxAlreadyExists = !!document.getElementById(`contact__checkbox--${contactEmail}`);
+    if(!checkBoxAlreadyExists) {
+        const contactNameContainer = document.querySelector(`[data-email="${contactEmail}"]`)
                                          .children[0]
                                          .children[0];
-    const checkbox = createEl('input', {
-        type: 'checkbox',
-        className: 'contact__checkbox'
-    }, {
-        click: function() {
-            console.log(state.selected);
-            addOrRemoveFromSelected(contactEmail);
-            renderCancelOrDeleteAllButton();
-        }
-    })
-    contactNameContainer.appendChild(checkbox);
-    renderCancelOrDeleteAllButton();
+        const checkbox = createEl('input', {
+            type: 'checkbox',
+            className: 'contact__checkbox',
+            id: `contact__checkbox--${contactEmail}`
+        }, {
+            click: function() {
+                console.log(state.selected);
+                addOrRemoveFromSelected(contactEmail);
+                renderCancelOrDeleteAllButton();
+            }
+        })
+        contactNameContainer.appendChild(checkbox);
+        renderCancelOrDeleteAllButton();
+    }
 }
 
 const createToolTip = (contactContainer, email) => {
