@@ -246,8 +246,6 @@ const fillEdiForm = contactInfo => {
 }
 
 const editContact = contactEmail => {
-    const editContactAlreadyExists = document.querySelector('.form__edit');
-    editContactAlreadyExists?.remove()
 
     const contactContainer = document.querySelector(`[data-email="${contactEmail}"]`);
 
@@ -354,9 +352,11 @@ const createToolTip = (contactContainer, email) => {
                 click: function(event) {
                     event.stopPropagation();
                     hideTooltip();
-                    state.isEditing = true;
-                    setLocalStorageState(state);
-                    editContact(email);
+                    if(!state.isSelecting) {
+                        state.isEditing = true;
+                        setLocalStorageState(state);
+                        editContact(email);
+                    }
                 },
             }
         },
