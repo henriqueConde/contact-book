@@ -3,6 +3,8 @@ const INITIAL_STATE = {
     favorites: [],
     selected: [],
     isTooltipActive: false,
+    isEditing: false,
+    isSelecting: false,
 }
 let state = INITIAL_STATE;
 const MAIN = document.querySelector('#main');
@@ -48,7 +50,7 @@ const FORM_FIELDS = [
         type: 'tel',
         className: 'form__phone-number',
         validations: {
-            isRequired: false,
+            isRequired: true,
             regexVal: /^\s*(?:\+?(\d{1,3}))?[-. (]*(\d{3})[-. )]*(\d{3})[-. ]*(\d{3})(?: *x(\d+))?\s*$/i,
         }
     },
@@ -57,6 +59,11 @@ const FORM_FIELDS = [
 const CONTACT_FORM_TYPES = {
     add: 'Add',
     edit: 'Edit'
+}
+
+const FOOTER_BUTTON_TYPES = {
+    cancel: 'Cancel',
+    delete: 'Delete',
 }
 
 const getLocalStorageState = () => JSON.parse(localStorage.getItem('state'));
@@ -89,7 +96,11 @@ const checkLocalStorage = () => {
         state = {
             ...state, 
             ...getLocalStorageState(),
+            selected: [],
+            isEditing: false,
+            isSelecting: false
         }
+        setLocalStorageState(state);
     }
 }
 
@@ -129,11 +140,13 @@ const makeContactFavorite = ({ target }) => {
 }
 
 const showTooltip = (htmlContextContainer, email) => {
-    state = {
-        ...state,
-        isTooltipActive: true,
-    };
-    createToolTip(htmlContextContainer, email);
+    if(!state.isEditing) {
+        state = {
+            ...state,
+            isTooltipActive: true,
+        };
+        createToolTip(htmlContextContainer, email);
+    }
 }
 
 const hideTooltip = () => {
@@ -233,36 +246,103 @@ const fillEdiForm = contactInfo => {
 }
 
 const editContact = contactEmail => {
+    const editContactAlreadyExists = document.querySelector('.form__edit');
+    editContactAlreadyExists?.remove()
+
     const contactContainer = document.querySelector(`[data-email="${contactEmail}"]`);
 
-    // retrieve contact info from state
     const { contacts } = state;
     const contactInfo = contacts.filter(contact => contact.email === contactEmail)[0];
-    
-    // render edit contact info form
+
     const editContactForm = createEditContact(contactInfo);
     contactContainer.appendChild(editContactForm);
 
-    // fill form with values
     fillEdiForm(contactInfo);
 }
 
 
 
-const deleteContact = contactInfo => {
-    const contactContainer = document.querySelector(`[data-email="${contactInfo}"]`);
+const deleteContact = contactEmail => {
+    const contactContainer = document.querySelector(`[data-email="${contactEmail}"]`);
     contactContainer.remove();
     const { contacts } = state;
-    const contactId = getContactId(contactInfo);
+    const contactId = getContactId(contactEmail);
     if(state.favorites.includes(contactId)) {
         updateFavoritesState(contactId);
     }
-    const newContacts = contacts.filter(contact => contact.email !== contactInfo);
+    const newContacts = contacts.filter(contact => contact.email !== contactEmail);
     removeContactState(newContacts);
 }
 
-const selectContact = () => {
-    console.log('Select contact');
+const removeCheckboxes = () => {
+    state.isSelecting = false;
+    setLocalStorageState(state);
+    const checkBoxes = [...document.querySelectorAll('.contact__checkbox')];
+    checkBoxes.forEach(checkBox => checkBox.remove());
+}
+
+const deleteSelectedContacts = () => {
+    const { contacts, selected } = state;
+    const newContactState = contacts.filter(contact => !selected.includes(contact.id));
+    state.contacts = newContactState;
+}
+
+const renderCancelOrDeleteAllButton = () => {
+    let buttonType;
+    if (state.selected.length > 0) {
+        buttonType = FOOTER_BUTTON_TYPES.delete;
+    } else {
+        buttonType = FOOTER_BUTTON_TYPES.cancel;
+    }
+    const footerButton = document.querySelector('.footer__toggle-button');
+    footerButton?.remove();
+    const button = createEl('button', {
+        textContent: buttonType,
+        className: `footer__toggle-button footer__${buttonType.toLowerCase()}-button`
+    }, {
+        click: function() {
+            if(buttonType === FOOTER_BUTTON_TYPES.delete) {
+                deleteSelectedContacts();
+                setLocalStorageState(state);
+                removeContactsList();
+                renderContactList();
+            } else {
+                removeCheckboxes();
+            }
+        }
+    })
+    const footer = document.querySelector('.footer');
+    footer.appendChild(button);
+}
+
+const addOrRemoveFromSelected = contactEmail => {
+    const contactId = getContactId(contactEmail);
+    if(!state.selected.includes(contactId)) {
+        state.selected.push(contactId)
+    } else {
+        const contactIdIndex = state.selected.indexOf(contactId);
+        state.selected.splice(contactIdIndex, 1);
+    }
+    setLocalStorageState(state);
+    console.log(state);
+}
+
+const selectContact = contactEmail => {
+    const contactNameContainer = document.querySelector(`[data-email="${contactEmail}"]`)
+                                         .children[0]
+                                         .children[0];
+    const checkbox = createEl('input', {
+        type: 'checkbox',
+        className: 'contact__checkbox'
+    }, {
+        click: function() {
+            console.log(state.selected);
+            addOrRemoveFromSelected(contactEmail);
+            renderCancelOrDeleteAllButton();
+        }
+    })
+    contactNameContainer.appendChild(checkbox);
+    renderCancelOrDeleteAllButton();
 }
 
 const createToolTip = (contactContainer, email) => {
@@ -274,6 +354,8 @@ const createToolTip = (contactContainer, email) => {
                 click: function(event) {
                     event.stopPropagation();
                     hideTooltip();
+                    state.isEditing = true;
+                    setLocalStorageState(state);
                     editContact(email);
                 },
             }
@@ -296,7 +378,9 @@ const createToolTip = (contactContainer, email) => {
                 click: function(event) {
                     event.stopPropagation();
                     hideTooltip();
-                    selectContact();
+                    state.isSelecting = true;
+                    setLocalStorageState(state);
+                    selectContact(email);
                 },
                 blur: function() {
                     // why do I need to check the state here??
@@ -407,6 +491,11 @@ const validateForm = formValues => {
         if(!validations.isRequired && formValues[input] === '') {
             return;
         }
+
+        if(validations.isRequired && formValues[input] === '') {
+            errorMessages[input] = `The ${input} can not be empty`;
+            return;
+        }
         
         if(validations.minLength !== null && formValues[input].length < validations.minLength) {
             errorMessages[input] = `The ${input} is to short`;
@@ -500,13 +589,32 @@ const createContactForm = formType => {
             if(formType === CONTACT_FORM_TYPES.add) {
                 handleAddContactBtnClick();
             } else {
+                state.isEditing = false;
+                setLocalStorageState(state);
                 const selectedContactEmail = this.parentNode.parentNode.dataset.email;
                 handleEditContactBtnClick(selectedContactEmail);
             }
         }
     })
 
+    const cancelButton = createEl('button', {
+        textContent: 'Cancel',
+        className: 'form__cancel-button'
+    }, {
+        click: function(event) {
+            event.preventDefault();
+            if(formType === CONTACT_FORM_TYPES.add) {
+                removeModal();
+            } else {
+                state.isEditing = false;
+                setLocalStorageState(state);
+                removeEditContactForm();
+            }
+        }
+    })
+
     contactForm.appendChild(actionContactButton);
+    contactForm.appendChild(cancelButton);
     return contactForm;
 }
 
@@ -641,5 +749,3 @@ const INIT = () => {
 }
 
 INIT();
-
-console.log(state);
