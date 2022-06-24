@@ -281,6 +281,14 @@ const deleteSelectedContacts = () => {
     setLocalStorageState(state);
 }
 
+const removeFooterToggleButtons = () => {
+    const footerCancelButton = document.querySelector(`.footer__cancel-button`);
+    const footerDeleteButton = document.querySelector(`.footer__delete-button`);
+    footerCancelButton?.remove();
+    footerDeleteButton?.remove();
+}
+
+
 const renderCancelOrDeleteAllButton = () => {
     let buttonType;
     if (state.selected.length > 0) {
@@ -288,8 +296,7 @@ const renderCancelOrDeleteAllButton = () => {
     } else {
         buttonType = FOOTER_BUTTON_TYPES.cancel;
     }
-    const footerButton = document.querySelector('.footer__toggle-button');
-    footerButton?.remove();
+    removeFooterToggleButtons();
     const button = createEl('button', {
         textContent: buttonType,
         className: `footer__toggle-button footer__${buttonType.toLowerCase()}-button`
@@ -301,6 +308,7 @@ const renderCancelOrDeleteAllButton = () => {
                 renderContactList();
             } else {
                 removeCheckboxes();
+                removeFooterToggleButtons();
             }
         }
     })
@@ -575,6 +583,10 @@ const createContactForm = formType => {
         contactForm.appendChild(formGroup);
     })
 
+    const buttonsContainer = createEl('div', {
+        className: 'form__buttons-container'
+    })
+
     const actionContactButton = createEl('button', {
         textContent: `${formType} Contact`,
         className: `form__${formType.toLowerCase()}-button`
@@ -586,7 +598,7 @@ const createContactForm = formType => {
             } else {
                 state.isEditing = false;
                 setLocalStorageState(state);
-                const selectedContactEmail = this.parentNode.parentNode.dataset.email;
+                const selectedContactEmail = this.parentNode.parentNode.parentNode.dataset.email;
                 handleEditContactBtnClick(selectedContactEmail);
             }
         }
@@ -608,8 +620,9 @@ const createContactForm = formType => {
         }
     })
 
-    contactForm.appendChild(actionContactButton);
-    contactForm.appendChild(cancelButton);
+    buttonsContainer.appendChild(actionContactButton);
+    buttonsContainer.appendChild(cancelButton);
+    contactForm.appendChild(buttonsContainer);
     return contactForm;
 }
 
@@ -619,8 +632,7 @@ const removeEditContactForm = () => {
 }
 
 const getContactId = contactEmail => {
-    const { contacts } = state;
-    const contact = contacts.filter(contact => contact.email === contactEmail)[0];
+    const contact = state.contacts.filter(contact => contact.email === contactEmail)[0];
     return contact.id;
 }
 
@@ -651,7 +663,7 @@ const handleEditContactBtnClick = contactEmail => {
     const inputValues = getFormValues();
     const errorMessages = validateForm(inputValues);
     if(Object.keys(errorMessages).length === 0) {
-        const contactAlreadyExists = checkContactExists(contactEmail);
+        const contactAlreadyExists = checkContactExists(inputValues.email);
         if(!contactAlreadyExists || inputValues.email === contactEmail) {
             const newContactState = insertIdToUpdatedValues(inputValues, contactEmail);
             updateContacts(newContactState)
@@ -752,3 +764,7 @@ INIT();
 
 // 1 - I used the email as the mean to check the contact's identity, in order to avoid exposing the id as a data-attribute.
 // Is there a better strategy to deal with this?
+
+// 2 - Is there a way to avoid the need to hover quickly to the tooltip so it does not hide?
+
+// 3 - See line 391.

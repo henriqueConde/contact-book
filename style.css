@@ -1,17 +1,27 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@500&display=swap');
+
 * {
     box-sizing: border-box;
 }
 
 :root {
     --border-radius: 5px;
+    --background-dark-color-primary: #000;
     --background-bright-color-primary: #fff;
     --background-bright-color-secondary: #c4c4c4;
+    --favorites-color: #e74c3c;
+    --erros-color: #c0392b;
+    --hover-li-background: #c23616;
+    --delete-color: #eb2f06;
+    --cancel-color: #d35400;
+    --modal-outside-container-background: rgba(0,0,0, 0.5);
 }
 
 body {
     margin: 0;
     padding: 0;
     background: var(--background-bright-color-secondary);
+    font-family: 'Montserrat', sans-serif;
 }
 
 li {
@@ -52,19 +62,13 @@ button {
     padding: 20px
 }
 
-.footer {
-    display: flex;
-    justify-content: flex-end;
-    margin: 20px 0;
-}
-
 .modal-container {
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0,0,0, 0.5);
+    background-color: var(--modal-outside-container-background);
     display: flex;
     flex-direction: column;
     justify-content: space-around;
@@ -93,14 +97,38 @@ button {
     margin-bottom: 40px;
 }
 
-.form__add-button{
+.form__add-button,
+.form__edit-button{
     max-width: 8rem;
     padding: 5px 15px;
     border-radius: var(--border-radius);
     border: none;
-    background-color: black;
-    color: #fff;
+    background-color: var(--background-dark-color-primary);
+    color: var(--background-bright-color-primary);
     align-self: flex-end;
+}
+
+.form__cancel-button,
+.footer__cancel-button,
+.footer__delete-button {
+    max-width: 8rem;
+    padding: 5px 15px;
+    border-radius: var(--border-radius);
+    border: none;
+    background-color: var(--cancel-color);
+    color: var(--background-bright-color-primary);
+    align-self: flex-end;
+    margin-right: 10px;
+}
+
+.footer__delete-button {
+    background-color: var(--delete-color);
+}
+
+.form__buttons-container {
+    display: flex;
+    justify-content: flex-start;
+    flex-direction: row-reverse;
 }
 
 .input-div {
@@ -110,7 +138,7 @@ button {
 }
 
 .form__error-message {
-    color: red;
+    color: var(--erros-color);
     position: absolute;
     top: 120%;
 }
@@ -154,7 +182,7 @@ button {
 }
 
 .favorite {
-    color: red;
+    color: var(--favorites-color);
 }
 
 .tooltip {
@@ -166,24 +194,31 @@ button {
 }
 
 .tooltip__action-li {
-    background-color: black;
+    background-color: var(--background-dark-color-primary);
     cursor: pointer;
     padding: 6px;
     width: 100%;
 }
 
 .tooltip__action {
-    color: white;
+    color: var(--background-bright-color-primary);
     font-size: 18px;
 }
 
 .tooltip__action-li:hover {
-    background-color: rgb(141, 13, 13);
+    background-color: var(--hover-li-background);
+}
+
+.footer {
+    display: flex;
+    justify-content: flex-start;
+    margin: 20px 0;
+    flex-direction: row-reverse;
 }
 
 .footer__add-button {
-    background-color: black;
-    color: white;
+    background-color: var(--background-dark-color-primary);
+    color: var(--background-bright-color-primary);
     padding: 5px 20px;
     border-radius: var(--border-radius);
 }
