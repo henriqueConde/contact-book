@@ -98,7 +98,8 @@ const checkLocalStorage = () => {
             ...getLocalStorageState(),
             selected: [],
             isEditing: false,
-            isSelecting: false
+            isSelecting: false,
+            isTooltipActive: false,
         }
         setLocalStorageState(state);
     }
@@ -145,6 +146,7 @@ const showTooltip = (htmlContextContainer, email) => {
             ...state,
             isTooltipActive: true,
         };
+        setLocalStorageState(state);
         createToolTip(htmlContextContainer, email);
     }
 }
@@ -154,6 +156,7 @@ const hideTooltip = () => {
         ...state,
         isTooltipActive: false,
     };
+    setLocalStorageState(state);
     const tooltip = document.querySelector('.tooltip');
     tooltip?.remove();
 }
@@ -233,11 +236,6 @@ const createContactIcons = contact => {
     })
 }
 
-const createEditContact = () => {
-    const contactForm = createContactForm(CONTACT_FORM_TYPES.edit);
-    return contactForm;
-}
-
 const fillEdiForm = contactInfo => {
     const formElements = [...document.querySelectorAll('.form__input')];
     formElements.forEach(input => {
@@ -246,19 +244,15 @@ const fillEdiForm = contactInfo => {
 }
 
 const editContact = contactEmail => {
-
     const contactContainer = document.querySelector(`[data-email="${contactEmail}"]`);
 
-    const { contacts } = state;
-    const contactInfo = contacts.filter(contact => contact.email === contactEmail)[0];
+    const contactInfo = state.contacts.filter(contact => contact.email === contactEmail)[0];
 
-    const editContactForm = createEditContact(contactInfo);
+    const editContactForm = createContactForm(CONTACT_FORM_TYPES.edit);
     contactContainer.appendChild(editContactForm);
 
     fillEdiForm(contactInfo);
 }
-
-
 
 const deleteContact = contactEmail => {
     const contactContainer = document.querySelector(`[data-email="${contactEmail}"]`);
@@ -270,6 +264,7 @@ const deleteContact = contactEmail => {
     }
     const newContacts = contacts.filter(contact => contact.email !== contactEmail);
     removeContactState(newContacts);
+    renderContactList();
 }
 
 const removeCheckboxes = () => {
@@ -283,6 +278,7 @@ const deleteSelectedContacts = () => {
     const { contacts, selected } = state;
     const newContactState = contacts.filter(contact => !selected.includes(contact.id));
     state.contacts = newContactState;
+    setLocalStorageState(state);
 }
 
 const renderCancelOrDeleteAllButton = () => {
@@ -301,7 +297,6 @@ const renderCancelOrDeleteAllButton = () => {
         click: function() {
             if(buttonType === FOOTER_BUTTON_TYPES.delete) {
                 deleteSelectedContacts();
-                setLocalStorageState(state);
                 removeContactsList();
                 renderContactList();
             } else {
@@ -313,8 +308,7 @@ const renderCancelOrDeleteAllButton = () => {
     footer.appendChild(button);
 }
 
-const addOrRemoveFromSelected = contactEmail => {
-    const contactId = getContactId(contactEmail);
+const addOrRemoveFromSelected = contactId => {
     if(!state.selected.includes(contactId)) {
         state.selected.push(contactId)
     } else {
@@ -322,7 +316,6 @@ const addOrRemoveFromSelected = contactEmail => {
         state.selected.splice(contactIdIndex, 1);
     }
     setLocalStorageState(state);
-    console.log(state);
 }
 
 const selectContact = contactEmail => {
@@ -337,8 +330,8 @@ const selectContact = contactEmail => {
             id: `contact__checkbox--${contactEmail}`
         }, {
             click: function() {
-                console.log(state.selected);
-                addOrRemoveFromSelected(contactEmail);
+                const contactId = getContactId(contactEmail);
+                addOrRemoveFromSelected(contactId);
                 renderCancelOrDeleteAllButton();
             }
         })
@@ -430,8 +423,7 @@ const createToolTip = (contactContainer, email) => {
 
 const renderContactList = () => {
     removeAllContacts();
-    const { contacts } = state;
-    contacts.forEach(contact => {
+    state.contacts.forEach(contact => {
         const contactContainer = createEl('div', {
             className: 'contact',
             data: {
@@ -447,8 +439,6 @@ const renderContactList = () => {
             className: 'contact__name',
         })
 
-       
-
         const contactName = createEl('h2', {
             textContent: `${contact.name} ${contact.surname}`,
         })
@@ -456,9 +446,6 @@ const renderContactList = () => {
         const contactIconsContainer = createEl('div', {
             className: 'contact__icons-container',
         })
-
-        divWrapper.appendChild(contactNameDiv)
-        divWrapper.appendChild(contactIconsContainer)
 
         const contactIconsList = createEl('ul', {
             className: 'contact__icons-list',
@@ -472,10 +459,12 @@ const renderContactList = () => {
             contactIconsList.appendChild(icon);
         })
 
+        divWrapper.appendChild(contactNameDiv);
+        divWrapper.appendChild(contactIconsContainer);
         contactIconsContainer.appendChild(contactIconsList);
         contactNameDiv.appendChild(contactName);
-        divWrapper.appendChild(contactNameDiv)
-        divWrapper.appendChild(contactIconsContainer)
+        divWrapper.appendChild(contactNameDiv);
+        divWrapper.appendChild(contactIconsContainer);
         contactContainer.appendChild(divWrapper);
         MAIN.appendChild(contactContainer);
     })
@@ -662,11 +651,16 @@ const handleEditContactBtnClick = contactEmail => {
     const inputValues = getFormValues();
     const errorMessages = validateForm(inputValues);
     if(Object.keys(errorMessages).length === 0) {
-        const newContactState = insertIdToUpdatedValues(inputValues, contactEmail);
-        updateContacts(newContactState)
-        setLocalStorageState(state);
-        removeContactsList();
-        renderContactList();
+        const contactAlreadyExists = checkContactExists(contactEmail);
+        if(!contactAlreadyExists || inputValues.email === contactEmail) {
+            const newContactState = insertIdToUpdatedValues(inputValues, contactEmail);
+            updateContacts(newContactState)
+            setLocalStorageState(state);
+            removeContactsList();
+            renderContactList();
+        } else {
+            renderAlreadyExistsError();
+        }
     } else {
         renderErrorMessages(errorMessages);
     }
@@ -680,6 +674,7 @@ const handleAddContactBtnClick = () => {
         if(!contactAlreadyExists) {
             const valuesWithId = addUniqueId(formValues);
             addContactState(valuesWithId);
+            renderContactList();
             removeModal();
         } else {
             renderAlreadyExistsError();
@@ -700,6 +695,7 @@ const checkContactExists = newContactEmail => {
     state.contacts.forEach(contact => {
         if(contact.email === newContactEmail) {
             contactAlreadyExists = true;
+            return;
         }
     })
     return contactAlreadyExists;
@@ -708,13 +704,11 @@ const checkContactExists = newContactEmail => {
 const addContactState = newState => {
     state.contacts.push(newState);
     setLocalStorageState(state);
-    renderContactList();
 }
 
 const removeContactState = newState => {
     state.contacts = newState;
     setLocalStorageState(state);
-    renderContactList();
 }
 
 const addUniqueId = valuesObj => {
@@ -755,3 +749,6 @@ const INIT = () => {
 }
 
 INIT();
+
+// 1 - I used the email as the mean to check the contact's identity, in order to avoid exposing the id as a data-attribute.
+// Is there a better strategy to deal with this?
